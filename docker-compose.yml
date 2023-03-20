@@ -1,0 +1,87 @@
+version: '3'
+
+services:
+  oauth_server:
+    hostname: oauth_server
+    container_name: oauth_server
+    build:
+      args:
+        user: huzaifa
+        uid: 1000
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /var/www/
+    volumes:
+      - ./oauth-server:/var/www
+      - ./docker-compose/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:rw,delegated
+    ports:
+      - 9000
+      - 5173:5173
+
+  oauth_client:
+    hostname: oauth_client
+    container_name: oauth_client
+    build:
+      args:
+        user: huzaifa
+        uid: 1000
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /var/www/
+    volumes:
+      - ./oauth-client:/var/www
+      - ./docker-compose/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:rw,delegated
+    ports:
+      - 9000
+      - 5174:5173
+
+  db:
+    hostname: oauth_db
+    container_name: oauth_db
+    image: mysql:5.7
+    volumes:
+      - db:/var/lib/mysql
+      # If you want to persist data on the host, comment the line above this one...
+      # and uncomment the line under this one.
+      # - ./docker-compose/db/data:/var/lib/mysql:rw,delegated
+    environment:
+      MYSQL_ROOT_PASSWORD: oauth
+    ports:
+      - '3306'
+
+  oauth_server_nginx:
+    hostname: oauth_server_nginx
+    container_name: oauth_server_nginx
+    image: nginx:1.17-alpine
+    ports:
+      - 80
+    volumes:
+      - ./oauth-server:/var/www
+      - ./docker-compose/nginx/oauth-server:/etc/nginx/conf.d/
+
+  oauth_client_nginx:
+    hostname: oauth_client_nginx
+    container_name: oauth_client_nginx
+    image: nginx:1.17-alpine
+    ports:
+      - 80
+    volumes:
+      - ./oauth-client:/var/www
+      - ./docker-compose/nginx/oauth-client:/etc/nginx/conf.d/
+
+  phpmyadmin:
+    hostname: oauth_pma
+    container_name: oauth_pma
+    image: phpmyadmin/phpmyadmin
+    environment:
+      MYSQL_ROOT_PASSWORD: 'oauth'
+      PMA_HOST: oauth_db
+      UPLOAD_LIMIT: 1G
+      PMA_PORT : 3306
+    ports:
+     - 80
+    volumes:
+     - /sessions
+
+volumes:
+  db:
